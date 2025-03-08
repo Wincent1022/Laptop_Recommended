@@ -1,24 +1,25 @@
 import streamlit as st
 import pandas as pd
 import joblib
+import numpy as np
 
-# Load the trained classification model, dataset, and scaler
+# Load the trained classification model, dataset, scaler, and feature names
 def load_model():
     try:
         data = joblib.load("laptop_classification_model.joblib")
-        if isinstance(data, tuple) and len(data) == 3:
-            return data  # Returns (df, model, scaler)
+        if isinstance(data, tuple) and len(data) == 4:
+            return data  # Returns (df, model, scaler, feature_names)
         else:
             st.error("Error: The joblib file does not contain the expected data. Please retrain and save the model correctly.")
-            return None, None, None
+            return None, None, None, None
     except Exception as e:
         st.error(f"Error loading model: {e}")
-        return None, None, None
+        return None, None, None, None
 
-df, model, scaler = load_model()
+df, model, scaler, feature_names = load_model()
 
 # Ensure the model and dataset are loaded before proceeding
-if df is None or model is None or scaler is None:
+if df is None or model is None or scaler is None or feature_names is None:
     st.stop()
 
 # Streamlit UI
@@ -43,7 +44,7 @@ price = st.number_input(
     value=default_price
 )
 
-# Create input dataframe for prediction with the same feature structure as training
+# Create input dataframe for prediction with correct feature names
 input_data = pd.DataFrame({
     "num_cores": [num_cores],
     "num_threads": [num_threads],
@@ -55,10 +56,13 @@ input_data = pd.DataFrame({
     "Price": [price]
 })
 
-# Ensure input_data has all necessary columns (add missing columns with default values)
-for col in df.columns:
+# Ensure input_data has all necessary columns (handle missing columns)
+for col in feature_names:
     if col not in input_data.columns:
         input_data[col] = 0  # Default value for missing columns
+
+# Ensure feature order matches training
+input_data = input_data[feature_names]
 
 # Use the **same scaler** from training to transform the input data
 X_scaled = scaler.transform(input_data)
