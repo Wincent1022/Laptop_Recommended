@@ -1,25 +1,24 @@
 import streamlit as st
 import pandas as pd
 import joblib
-from sklearn.preprocessing import StandardScaler
 
-# Load the trained classification model and dataset
+# Load the trained classification model, dataset, and scaler
 def load_model():
     try:
         data = joblib.load("laptop_classification_model.joblib")
-        if isinstance(data, tuple) and len(data) == 2:
-            return data  # Returns (df, model)
+        if isinstance(data, tuple) and len(data) == 3:
+            return data  # Returns (df, model, scaler)
         else:
             st.error("Error: The joblib file does not contain the expected data. Please retrain and save the model correctly.")
-            return None, None
+            return None, None, None
     except Exception as e:
         st.error(f"Error loading model: {e}")
-        return None, None
+        return None, None, None
 
-df, model = load_model()
+df, model, scaler = load_model()
 
 # Ensure the model and dataset are loaded before proceeding
-if df is None or model is None:
+if df is None or model is None or scaler is None:
     st.stop()
 
 # Streamlit UI
@@ -44,7 +43,7 @@ price = st.number_input(
     value=default_price
 )
 
-# Create input dataframe for prediction
+# Create input dataframe for prediction with the same feature structure as training
 input_data = pd.DataFrame({
     "num_cores": [num_cores],
     "num_threads": [num_threads],
@@ -56,9 +55,13 @@ input_data = pd.DataFrame({
     "Price": [price]
 })
 
-# Scale input data
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(input_data)
+# Ensure input_data has all necessary columns (add missing columns with default values)
+for col in df.columns:
+    if col not in input_data.columns:
+        input_data[col] = 0  # Default value for missing columns
+
+# Use the **same scaler** from training to transform the input data
+X_scaled = scaler.transform(input_data)
 
 # Predict processor brand
 if st.button("Predict Processor Brand"):
