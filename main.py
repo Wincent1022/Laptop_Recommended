@@ -74,7 +74,16 @@ if st.button("Predict Processor Brand"):
 
 # Laptop Recommendations based on similar specifications
 st.subheader("Laptop Recommendations")
-filtered_df = df[(df['ram_memory'] == ram_memory) & (df['primary_storage_capacity'] == primary_storage) &
-                 (df['display_size'] == display_size) & (df['Price'] >= price * 0.9) & (df['Price'] <= price * 1.1)]
+filtered_df = df[
+    (df['Price'].notna()) &  # Ensure no missing prices
+    (df['ram_memory'] >= ram_memory * 0.8) & (df['ram_memory'] <= ram_memory * 1.2) &  # Allow ±20% RAM variation
+    (df['primary_storage_capacity'] >= primary_storage * 0.8) & 
+    (df['primary_storage_capacity'] <= primary_storage * 1.2) &  # Allow ±20% storage variation
+    (df['display_size'] >= display_size * 0.9) & (df['display_size'] <= display_size * 1.1) &  # Allow slight display size variation
+    (df['Price'] >= price * 0.8) & (df['Price'] <= price * 1.2)  # Expand price range ±20%
+]
 
-st.dataframe(filtered_df[['brand', 'Model', 'Price', 'processor_brand', 'ram_memory', 'gpu_brand']])
+if not filtered_df.empty:
+    st.dataframe(filtered_df[['brand', 'Model', 'Price', 'processor_brand', 'ram_memory', 'gpu_brand']])
+else:
+    st.warning("No matching laptops found. Try adjusting the filters for more results.")
