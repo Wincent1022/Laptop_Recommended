@@ -5,10 +5,22 @@ from sklearn.preprocessing import StandardScaler
 
 # Load the trained classification model and dataset
 def load_model():
-    df, model = joblib.load("laptop_classification_model.joblib")
-    return df, model
+    try:
+        data = joblib.load("laptop_classification_model.joblib")
+        if isinstance(data, tuple) and len(data) == 2:
+            return data  # Returns (df, model)
+        else:
+            st.error("Error: The joblib file does not contain the expected data. Please retrain and save the model correctly.")
+            return None, None
+    except Exception as e:
+        st.error(f"Error loading model: {e}")
+        return None, None
 
 df, model = load_model()
+
+# Ensure the model and dataset are loaded before proceeding
+if df is None or model is None:
+    st.stop()
 
 # Streamlit UI
 st.title("Laptop Classification & Recommendation System")
@@ -22,7 +34,15 @@ primary_storage = st.selectbox("Primary Storage Capacity (GB)", sorted(df['prima
 display_size = st.selectbox("Select Display Size (inches)", sorted(df['display_size'].unique()))
 resolution_width = st.number_input("Resolution Width", min_value=800, max_value=3840, value=1920)
 resolution_height = st.number_input("Resolution Height", min_value=600, max_value=2160, value=1080)
-price = st.number_input("Price (USD)", min_value=float(df['Price'].min()), max_value=float(df['Price'].max()), value=500.0)
+
+# Fix: Ensure price input default is within valid range
+default_price = max(min(500.0, float(df['Price'].max())), float(df['Price'].min()))
+price = st.number_input(
+    "Price (USD)", 
+    min_value=float(df['Price'].min()), 
+    max_value=float(df['Price'].max()), 
+    value=default_price
+)
 
 # Create input dataframe for prediction
 input_data = pd.DataFrame({
